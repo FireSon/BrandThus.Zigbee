@@ -1,0 +1,1 @@
+namespace BrandThus.Zigbee.Types;public struct Int24 : IZigbeeType{	byte[] IZigbeeType.data { get; set; }	public static implicit operator Int24(int value)	{		return IZigbeeType.Create<Int24>(value, 3);	}}
