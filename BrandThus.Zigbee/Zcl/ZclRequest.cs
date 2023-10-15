@@ -16,6 +16,13 @@ public class ZclRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : Zigbee
         writer.WriteByte(TransactionId);
         writer.WriteByte(CommandId);
         write?.Invoke(writer);
-    } 
+    }
+    #endregion
+
+    #region HandleResponse
+    internal static void HandleResponse()
+    {
+
+    }
     #endregion
 }

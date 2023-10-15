@@ -4,7 +4,8 @@ public class ZdoRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : Zigbee
 {
     internal override void WritePayLoad(ZigbeeWriter writer)
     {
-        throw new NotImplementedException();
+        writer.WriteByte(TransactionId);
+        write?.Invoke(writer);
     }
 }
 

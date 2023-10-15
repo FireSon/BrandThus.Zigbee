@@ -14,21 +14,22 @@ internal class ConbeeWriter : ZigbeeWriter
 
     internal override void WriteRequest(ZigbeeRequest rq)
     {
+        Length = 0;
         Write(rq.TransactionId);
-        Write(0);
+        Write((byte)0);
         if (rq.Dst.Addr64 != 0L)
         {
-            Write(3);
-            WriteUInt64(rq.Dst.Addr64);
+            Write((byte)3);
+            Write(rq.Dst.Addr64);
         }
         else
         {
-            Write(2);
-            WriteUInt16(rq.Dst.Addr16);
+            Write((byte)2);
+            Write(rq.Dst.Addr16);
         }
         Write(rq.DstEndPoint);
-        WriteUInt16(rq.ProfileId);
-        WriteUInt16(rq.ClusterId);
+        Write(rq.ProfileId);
+        Write(rq.ClusterId);
         Write(rq.SrcEndPoint);
         ushort idx = Length;
         Length += 2;

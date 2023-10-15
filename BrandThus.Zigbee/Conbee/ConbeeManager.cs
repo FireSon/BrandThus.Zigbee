@@ -116,7 +116,7 @@ public class ConbeeManager : ZigbeeManager
             {
                 port?.Dispose();
                 port = null;
-                portcheck = DateTime.Now.AddSeconds(5.0);
+                portcheck = DateTime.Now.AddSeconds(30);
             }
             catch (Exception ex)
             {
@@ -213,7 +213,7 @@ public class ConbeeManager : ZigbeeManager
                     break;
                 }
             case ConbeeCommand.READ_PARAMETER:
-                Logger.Info(ReadParameter());
+                Logger.Trace(ReadParameter());
                 break;
             case ConbeeCommand.DEVICE_STATE:
                 HandleApsFrame(reader[5], allowCommand: true);
@@ -225,13 +225,20 @@ public class ConbeeManager : ZigbeeManager
                 if (reader.Status == ConbeeStatus.SUCCESS)
                 {
                     ReadNode(8);
-                    byte endPoint = reader.ReadByte();
+                    reader.ReadByte();
                     n = ReadNode(reader.Offset);
-                    endPoint = reader.ReadByte();
+                    var endPoint = reader.ReadByte();
                     ushort profileId = reader.ReadUInt16();
                     ushort clusterId = reader.ReadUInt16();
                     reader.Payload = reader.Offset + reader.ReadUInt16();
-                    //HandleResponse(i, profileId, clusterId, endPoint, reader);
+                    switch (profileId)
+                    {
+                        case 0: n.ZdoResponse(clusterId, endPoint, reader); break;
+                        case 260: n.ZclResponse(clusterId, endPoint, reader); break;
+                    }
+                }
+                else
+                {
                 }
                 HandleApsFrame(reader[7], allowCommand: true);
                 break;
@@ -247,35 +254,34 @@ public class ConbeeManager : ZigbeeManager
                 HandleApsFrame(reader[7], allowCommand: true);
                 break;
             case ConbeeCommand.APS_DATA_CONFIRM:
+                ZigbeeRequest? drq = requests[reader[8]];
+                if (drq != null && drq != null)
                 {
-                    ZigbeeRequest? drq = requests[reader[8]];
-                    if (drq != null && drq != null)
+                    requests[reader[8]] = null;
+                    int cfStatus = -1;
+                    if (reader.Status == ConbeeStatus.SUCCESS)
                     {
-                        requests[reader[8]] = null;
-                        int cfStatus = -1;
-                        if (reader.Status == ConbeeStatus.SUCCESS)
+                        n = ReadNode(9);
+                        reader.ReadByte();
+                        reader.ReadByte();
+                        cfStatus = reader.ReadByte();
+                        if (cfStatus != 0 && drq.Retry-- > 0)
                         {
-                            n = ReadNode(9);
-                            reader.ReadByte();
-                            reader.ReadByte();
-                            cfStatus = reader.ReadByte();
-                            if (cfStatus != 0 && drq.Retry-- > 0)
-                            {
-                                commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, drq));
-                                return;
-                            }
+                            commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, drq));
+                            return;
                         }
-                        drq.TaskSource.SetResult(cfStatus == 0);
-                        if (drq.ProfileId == 0)
-                            Logger.Info($"Zdo Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} {cfStatus:X2}");
-                        else
-                            Logger.Info($"Zcl Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} {cfStatus:X2}");
                     }
-                    HandleApsFrame(reader[7], allowCommand: true);
-                    break;
+                    drq.TaskSource.SetResult(cfStatus == 0);
+                    if (drq.ProfileId == 0)
+                        Logger.Trace($"Zdo Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} {cfStatus:X2}");
+                    else
+                        Logger.Trace($"Zcl Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} {cfStatus:X2}");
                 }
+                HandleApsFrame(reader[7], allowCommand: true);
+                break;
         }
-        Logger.Info($"Node: {n?.Addr16:X4}; {reader.Command}; apsde: {conbeeAPSDE:X2}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
+        Logger.Trace($"Node: {n?.Addr16:X4}; {reader.Command}; apsde: {conbeeAPSDE:X2}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
+
         void HandleApsFrame(byte apsde, bool allowCommand)
         {
             conbeeAPSDE = apsde;
@@ -330,7 +336,7 @@ public class ConbeeManager : ZigbeeManager
     }
     #endregion
 
-    #region WriteCpmmand
+    #region WriteCommand
     private void WriteCommand(ConbeeCommand command, object? parameter = null)
     {
         if (port == null || !port.IsOpen)
@@ -381,14 +387,14 @@ public class ConbeeManager : ZigbeeManager
             write((byte)(len2 >> 8));
             write((byte)writer.Length);
             write((byte)(writer.Length >> 8));
-            Logger.Info($"{command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}; request: {writeRequestId}");
+            Logger.Trace($"{command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}; request: {writeRequestId}");
         }
         else
         {
             ushort len = (ushort)(5 + writer.Length);
             write((byte)len);
             write((byte)(len >> 8));
-            Logger.Info($"{command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}");
+            Logger.Trace($"{command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}");
         }
         writer.WritePayload(write);
         crc = (ushort)(~crc + 1);

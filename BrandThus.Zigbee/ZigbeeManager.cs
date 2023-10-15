@@ -14,7 +14,8 @@ public abstract class ZigbeeManager
     public Action? OnLine { get; set; }
     public Action<ZigbeeNode>? OnNodeCreate { get; set; }
     public Action<ZigbeeNode>? OnNodePoll { get; set; }
-    public List<ZigbeeNode>? NodeList => Nodes.Values.ToList();
+    public List<ZigbeeNode>? NodeList => Nodes.Values.Where(n => n.Addr16 != 0).ToList();
+    public LogEvent? LogEvent { get => Logger.LogEvent; set => Logger.LogEvent = value; }
 
     internal ZigbeeNode Coordinator = default!;
     internal Dictionary<ushort, ZigbeeNode> Nodes = [];

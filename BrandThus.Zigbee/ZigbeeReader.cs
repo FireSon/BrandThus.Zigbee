@@ -48,11 +48,23 @@ public abstract class ZigbeeReader
     public ushort ReadUInt16() => Read(BitConverter.ToUInt16, 2);
     public int ReadInt32() => Read(BitConverter.ToInt32, 4);
     public uint ReadUInt32() => Read(BitConverter.ToUInt32, 4);
+    public Single ReadSingle() => Read(BitConverter.ToSingle, 4);
     public long ReadInt64() => Read(BitConverter.ToInt64, 8);
     public ulong ReadUInt64() => Read(BitConverter.ToUInt64, 8);
+    public DateTime ReadDateTime() => DateTime.Now;
     public bool ReadBool() => ReadByte() != 0;
+    public string ReadString(int size) => Encoding.ASCII.GetString(ReadBytes(size));
+    public string ReadString()
+    {
+        byte size = ReadByte();
+        return (size != byte.MaxValue) ? ReadString(size) : String.Empty;
+    }
 
-    public string ReadString(int size) => Encoding.Default.GetString(ReadBytes(size));
+    public byte[] ReadArray()
+    {
+        byte size = ReadByte();
+        return ReadBytes(size);
+    }
     #endregion
 
     #region Clear
@@ -63,5 +75,3 @@ public abstract class ZigbeeReader
     public void Add(byte v) => Buffer[Offset++] = v;
     #endregion
 }
-
-
