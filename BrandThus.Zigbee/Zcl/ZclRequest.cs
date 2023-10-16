@@ -18,11 +18,4 @@ public class ZclRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : Zigbee
         write?.Invoke(writer);
     }
     #endregion
-
-    #region HandleResponse
-    internal static void HandleResponse()
-    {
-
-    }
-    #endregion
 }

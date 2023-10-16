@@ -15,7 +15,7 @@ public abstract class ZigbeeRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = nu
     internal byte Radius = 31;
     internal byte TransactionId;
     internal TaskCompletionSource<bool> TaskSource = new();
-    internal byte Retry = 3;
+    internal byte Retry = 0;
     protected Func<ZigbeeWriter, ZigbeeWriter>? write = write;
     #endregion
 

@@ -1,4 +1,5 @@
-﻿using BrandThus.Zigbee.Conbee;
+﻿using BrandThus.Zigbee.Clusters;
+using BrandThus.Zigbee.Conbee;
 using Microsoft.Extensions.Configuration;
 
 Console.WriteLine("Zigbee Test program");
@@ -13,7 +14,7 @@ var config = configuration.Build();
 
 var Zigbee = new ConbeeManager(config, new());
 Zigbee.OnLine = () => Console.WriteLine("Online");
-Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{type} {file} {mbr} {line} {msg}");
+Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{mbr} {line} {msg}");
 
 while (true)
 {
@@ -23,11 +24,17 @@ while (true)
         switch (Console.ReadKey().Key)
         {
             case ConsoleKey.Enter: goto ready;
+            case ConsoleKey.C:
+                Console.Clear();
+                break;
             case ConsoleKey.O:
-                foreach (var c in Zigbee.NodeList)
-                {
-                    await c.NodeDescriptor();
-                }
+                var n = Zigbee.NodeList.FirstOrDefault(n => n.Addr16 == 14728);
+                if (n != null)
+                    n.Read(ZclTemperatureMeasurement.MeasuredValue, ZclTemperatureMeasurement.MinMeasuredValue, ZclTemperatureMeasurement.MaxMeasuredValue);
+                break;
+            case ConsoleKey.N:
+                foreach(var zn in Zigbee.NodeList)
+                    Zigbee.SendAsync(zn.NodeDescriptor());
                 break;
                 //case ConsoleKey.P:
                 //    foreach (var c in Zigbee.Nodes)

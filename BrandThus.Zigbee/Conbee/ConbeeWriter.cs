@@ -20,16 +20,16 @@ internal class ConbeeWriter : ZigbeeWriter
         if (rq.Dst.Addr64 != 0L)
         {
             Write((byte)3);
-            Write(rq.Dst.Addr64);
+            WriteUInt64(rq.Dst.Addr64);
         }
         else
         {
             Write((byte)2);
-            Write(rq.Dst.Addr16);
+            WriteUInt16(rq.Dst.Addr16);
         }
         Write(rq.DstEndPoint);
-        Write(rq.ProfileId);
-        Write(rq.ClusterId);
+        WriteUInt16(rq.ProfileId);
+        WriteUInt16(rq.ClusterId);
         Write(rq.SrcEndPoint);
         ushort idx = Length;
         Length += 2;

@@ -17,6 +17,7 @@ public abstract class ZigbeeAttribute
     #region Properties
     public ZigbeeCluster Cluster { get; set; }
     public ushort AttrId { get; set; }
+    public ZigbeeType Type { get; set; }
     public string Name { get; set; }
     public int? ManufacturerCode { get; set; }
 

@@ -1,9 +1,9 @@
 using BrandThus.Zigbee.Descriptors;
 using BrandThus.Zigbee.Zcl;
 using BrandThus.Zigbee.Zdo;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace BrandThus.Zigbee;
 
@@ -20,6 +20,7 @@ public class ZigbeeNode(ZigbeeManager manager)
     public PowerDescriptor? Power { get; set; }
     public SimpleDescriptor? Simple { get; set; }
     public ComplexDescriptor? Complex { get; set; }
+    public List<ZigbeeRequest> Requests { get; } = new();
 
     internal ZigbeeManager Manager = manager;
     private const byte MASK_MANUFACTURER_SPECIFIC = 4;
@@ -27,8 +28,8 @@ public class ZigbeeNode(ZigbeeManager manager)
     #endregion
 
     #region Descriptors
-    public Task NodeDescriptor() => Manager.SendAsync(Zdo(2, w => w + Addr16));
-    public Task PowerDescriptor() => Manager.SendAsync(Zdo(3, w => w + Addr16));
+    public ZdoRequest NodeDescriptor() => Zdo(2, w => w + Addr16);
+    public ZdoRequest PowerDescriptor() => Zdo(3, w => w + Addr16);
     public ZdoRequest SimpleDescriptor() => Zdo(4, w => w + Addr16 + (byte)1);
     public ZdoRequest EndPoints() => Zdo(5, w => w + Addr16);
     public ZdoRequest ComplexDescriptor() => Zdo(16, w => w + Addr16);
@@ -42,13 +43,14 @@ public class ZigbeeNode(ZigbeeManager manager)
         Dst = this,
         DstEndPoint = 0,
         Src = Manager.Coordinator,
-        SrcEndPoint = 0
+        SrcEndPoint = 0,
     };
     #endregion
 
     #region ZdoResponse
     internal void ZdoResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
     {
+        Logger.Info($"Addr: {Addr16} - {endPoint}");
         r.ReadByte();
         ZdoStatus num = r.ReadStatus();
         ushort NwkAddr = r.ReadUInt16();
@@ -56,25 +58,27 @@ public class ZigbeeNode(ZigbeeManager manager)
         {
             switch (clusterId)
             {
+                case 2:
+                    break;
                 case 32770:
-                    Descriptor = new (r.ReadByte(), r.ReadByte(), r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt16(), r.ReadByte());
+                    Descriptor = new(r.ReadByte(), r.ReadByte(), r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt16(), r.ReadByte());
                     Logger.Info($"Descriptor: {Addr16} - {Descriptor}");
                     break;
-                //case 32771:
-                //    Power = new PowerDescriptor(r.ReadUInt16());
-                //    Logger.Info($"{Addr16} - {Power}");
-                //    break;
-                //case 32772:
-                //    Simple = new SimpleDescriptor(r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadList<ushort>(), r.ReadList<ushort>());
-                //    Logger.Info($"{node2.Addr16} - {node2.Simple}");
-                //    break;
-                //case 32773:
-                //    Endpoints = r.ReadList<byte>();
-                //    Logger.Info($"{node2.Addr16} - {new Func<ZdoRequest>(EndPoints)}");
-                //    break;
-                //case 32784:
-                //    Complex = new ComplexDescriptor(r.ReadByte(), r.ReadString(), r.ReadString(), r.ReadString());
-                //    break;
+                case 32771:
+                    Power = new PowerDescriptor(r.ReadUInt16());
+                    Logger.Info($"{Addr16} - {Power}");
+                    break;
+                case 32772:
+                    //Simple = new SimpleDescriptor(r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadList<ushort>(), r.ReadList<ushort>());
+                    Logger.Info($"{Addr16} - {Simple}");
+                    break;
+                case 32773:
+                    //Endpoints = r.ReadList<byte>();
+                    Logger.Info($"{Addr16} - {new Func<ZdoRequest>(EndPoints)}");
+                    break;
+                case 32784:
+                    Complex = new ComplexDescriptor(r.ReadByte(), r.ReadString(), r.ReadString(), r.ReadString());
+                    break;
                 default:
                     break;
             }
@@ -83,7 +87,7 @@ public class ZigbeeNode(ZigbeeManager manager)
     #endregion
 
     #region Zcl
-    internal Task Zcl(ZigbeeCluster cluster, byte command, Func<ZigbeeWriter, ZigbeeWriter>? write = null, ZclFrameType frameType = ZclFrameType.CLUSTER_SPECIFIC_COMMAND) => Manager.SendAsync(new ZclRequest(write)
+    internal ZclRequest ZclRequest(ZigbeeCluster cluster, byte command, Func<ZigbeeWriter, ZigbeeWriter>? write = null, ZclFrameType frameType = ZclFrameType.CLUSTER_SPECIFIC_COMMAND) => new ZclRequest(write)
     {
         ClusterId = cluster.Id,
         ProfileId = 260,
@@ -95,7 +99,9 @@ public class ZigbeeNode(ZigbeeManager manager)
         Direction = ZclCommandDirection.CLIENT_TO_SERVER,
         FrameType = frameType,
         CommandId = command
-    });
+    };
+    internal Task Zcl(ZigbeeCluster cluster, byte command, Func<ZigbeeWriter, ZigbeeWriter>? write = null, ZclFrameType frameType = ZclFrameType.CLUSTER_SPECIFIC_COMMAND) =>
+        Manager.SendAsync(ZclRequest(cluster, command, write, frameType));
     #endregion
 
     #region ZclResponse
@@ -129,7 +135,7 @@ public class ZigbeeNode(ZigbeeManager manager)
                 int key = ((int)clusterId << 16) + (int)r.ReadUInt16();
                 if (!ZigbeeAttribute.Attributes.TryGetValue(key, out var zigbeeAttribute))
                 {
-                    if(clusterTypes.Count == 0)
+                    if (clusterTypes.Count == 0)
                         foreach (Type item in from t in GetType().Assembly.GetTypes()
                                               where t.DeclaringType == null && (t.FullName?.StartsWith("BrandThus.Zigbee.Clusters.") ?? false)
                                               select t)
@@ -168,5 +174,31 @@ public class ZigbeeNode(ZigbeeManager manager)
             }
         }
     }
+    #endregion
+
+    #region Read
+    public void Read(params ReportAttribute[] attributes) => Requests.Add(ZclRequest(attributes[0].Cluster, 0, w =>
+    {
+        foreach (ReportAttribute reportAttribute in attributes)
+            w.WriteUInt16(reportAttribute.AttrId);
+        return w;
+    }, ZclFrameType.ENTIRE_PROFILE_COMMAND));
+    #endregion
+
+    #region Report
+    public Task Report(ReportAttribute attribute, ushort minInterval, ushort maxInterval, object reportableChange) =>
+        Zcl(attribute.Cluster, 6, w =>
+        {
+            w.WriteByte(0);
+            w.WriteUInt16(attribute.AttrId);
+            w.WriteByte((byte)attribute.Type);
+            w.WriteUInt16(minInterval);
+            w.WriteUInt16(maxInterval);
+            //if (attribute2.Analog)
+            //{
+            //    w.WriteUInt16(10);
+            //}
+            return w;
+        }, ZclFrameType.ENTIRE_PROFILE_COMMAND); 
     #endregion
 }

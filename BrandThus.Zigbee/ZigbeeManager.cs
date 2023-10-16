@@ -14,7 +14,7 @@ public abstract class ZigbeeManager
     public Action? OnLine { get; set; }
     public Action<ZigbeeNode>? OnNodeCreate { get; set; }
     public Action<ZigbeeNode>? OnNodePoll { get; set; }
-    public List<ZigbeeNode>? NodeList => Nodes.Values.Where(n => n.Addr16 != 0).ToList();
+    public List<ZigbeeNode>? NodeList => Nodes.Values.ToList();
     public LogEvent? LogEvent { get => Logger.LogEvent; set => Logger.LogEvent = value; }
 
     internal ZigbeeNode Coordinator = default!;
@@ -28,6 +28,8 @@ public abstract class ZigbeeManager
             return node;
 
         node = Nodes[addr16] = new ZigbeeNode(this) { Addr16 = addr16 };
+        node.Requests.Add(node.NodeDescriptor());
+        //node.Requests.Add(node.PowerDescriptor());
         OnNodeCreate?.Invoke(node);
         return node;
     }
