@@ -20,7 +20,8 @@ public class ZigbeeNode(ZigbeeManager manager)
     public PowerDescriptor? Power { get; set; }
     public SimpleDescriptor? Simple { get; set; }
     public ComplexDescriptor? Complex { get; set; }
-    public List<ZigbeeRequest> Requests { get; } = new();
+    public List<ZigbeeRequest> Requests { get; } = [];
+    public object? Device { get; set; }
 
     internal ZigbeeManager Manager = manager;
     private const byte MASK_MANUFACTURER_SPECIFIC = 4;
