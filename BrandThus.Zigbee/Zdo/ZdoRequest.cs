@@ -1,4 +1,6 @@
-﻿namespace BrandThus.Zigbee.Zdo;
+﻿using System.ComponentModel.Design;
+
+namespace BrandThus.Zigbee.Zdo;
 
 public class ZdoRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : ZigbeeRequest(write)
 {
@@ -9,13 +11,4 @@ public class ZdoRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : Zigbee
         write?.Invoke(writer);
     } 
     #endregion
-}
-
-public enum ZigBeeAddressMode
-{
-    None,
-    Group,
-    Nwk,
-    Ieee,
-    NwkAndIeee
 }

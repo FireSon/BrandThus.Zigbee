@@ -29,7 +29,8 @@ public abstract class ZigbeeManager
 
         node = Nodes[addr16] = new ZigbeeNode(this) { Addr16 = addr16 };
         node.Requests.Add(node.NodeDescriptor());
-        //node.Requests.Add(node.PowerDescriptor());
+        node.Requests.Add(node.PowerDescriptor());
+        node.Requests.Add(node.IEEEDescriptor());
         OnNodeCreate?.Invoke(node);
         return node;
     }

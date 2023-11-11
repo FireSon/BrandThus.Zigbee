@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 using System.IO.Ports;
+using System.Net;
 using System.Text;
 
 namespace BrandThus.Zigbee.Conbee;
@@ -76,7 +77,7 @@ public class ConbeeManager : ZigbeeManager
                     port.Open();
                     Logger.Info("Serial port: " + portName + " opened");
 
-                    Nodes[0] = (Coordinator = new ZigbeeNode(this) { Addr16 = 0 });
+                    Coordinator = CreateNode(0);
                     foreach (ZigbeeNode i in Nodes.Values)
                         if (i?.Addr16 > 0)
                             OnNodeCreate?.Invoke(i);
@@ -134,7 +135,7 @@ public class ConbeeManager : ZigbeeManager
             {
                 switch (val)
                 {
-                    case 192:
+                    case 0xC0:
                         if (reader.Offset <= 0)
                             break;
                         try
@@ -156,7 +157,7 @@ public class ConbeeManager : ZigbeeManager
                             ex.Trace();
                         }
                         break;
-                    case 219:
+                    case 0xDB:
                         readEscape = true;
                         break;
                     default:
@@ -169,8 +170,8 @@ public class ConbeeManager : ZigbeeManager
             {
                 switch (val)
                 {
-                    case 220: reader.Add(192); break;
-                    case 221: reader.Add(219); break;
+                    case 0xDC: reader.Add(0xC0); break;
+                    case 0xDD: reader.Add(0xDB); break;
                     default: reader.Clear(); break;
                 }
                 readEscape = false;
@@ -193,7 +194,7 @@ public class ConbeeManager : ZigbeeManager
     #region ReadCommand
     internal void ReadCommand()
     {
-        Logger.Trace($"Read: {reader.Command}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
+        //Logger.Trace($"Read: {reader.Command}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
 
         ZigbeeNode? n = null;
         switch (reader.Command)
@@ -232,34 +233,32 @@ public class ConbeeManager : ZigbeeManager
                     {
                         case 0: n.ZdoResponse(clusterId, endPoint, reader); break;
                         case 260: n.ZclResponse(clusterId, endPoint, reader); break;
+                        default:
+                            break;
                     }
                 }
+                else
+                    Console.WriteLine("Error");
                 HandleApsFrame(reader[7], true);
-                if (n?.Requests.Count > 0)
-                {
-                    commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, n.NodeDescriptor()));
-                }
                 break;
             case ConbeeCommand.MAC_POLL_INDICATION:
                 n = ReadNode(7);
-                if (n.Requests.Count > 0)
+                if (n != null)
                 {
+                    n.Poll();
                     n.Requests.ForEach(r => commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, r)));
                     n.Requests.Clear();
                 }
-                //Logger.Info($"Poll Node: {n?.Addr16}");
-                //if (n?.Descriptor == null)
-                //    commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, n.NodeDescriptor()));
                 break;
             case ConbeeCommand.APS_DATA_REQUEST:
                 HandleApsFrame(reader[7], true);
                 break;
             case ConbeeCommand.APS_DATA_CONFIRM:
                 ZigbeeRequest? drq = requests[reader[8]];
+                int cfStatus = -1;
                 if (drq != null && drq != null)
                 {
                     requests[reader[8]] = null;
-                    int cfStatus = -1;
                     if (reader.Status == ConbeeStatus.SUCCESS)
                     {
                         n = ReadNode(9);
@@ -271,12 +270,17 @@ public class ConbeeManager : ZigbeeManager
                             commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, drq));
                             return;
                         }
+                        if (n.Requests.Count > 0)
+                        {
+                            n.Requests.ForEach(r => commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, r)));
+                            n.Requests.Clear();
+                        }
                     }
-                    //drq.TaskSource.SetResult(cfStatus == 0);
+                    drq.TaskSource?.SetResult(cfStatus == 0);
                     if (drq.ProfileId == 0)
-                        Logger.Trace($"Zdo Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus}");
+                        Logger.Trace($"Zdo Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
                     else
-                        Logger.Trace($"Zcl Node: {n?.Addr16} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus}");
+                        Logger.Trace($"Zcl Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
                 }
                 HandleApsFrame(reader[7], true);
                 break;
@@ -302,6 +306,7 @@ public class ConbeeManager : ZigbeeManager
         byte mode = reader.ReadByte();
         return mode switch
         {
+            1 => CreateNode(reader.ReadUInt16()),
             2 => CreateNode(reader.ReadUInt16()),
             3 => throw new Exception("Unsupported address mode"),
             4 => throw new Exception("Unsupported address mode"),
@@ -376,7 +381,6 @@ public class ConbeeManager : ZigbeeManager
             case ConbeeCommand.APS_DATA_REQUEST:
                 if (parameter is ZigbeeRequest rq)
                 {
-                    Logger.Info("Write request");
                     requests[rq.TransactionId = ++writeRequestId] = rq;
                     writer.WriteRequest(rq);
                 }
@@ -396,8 +400,8 @@ public class ConbeeManager : ZigbeeManager
             ushort len = (ushort)(5 + writer.Length);
             write((byte)len);
             write((byte)(len >> 8));
-            if (command == ConbeeCommand.APS_DATA_INDICATION)
-                Logger.Trace($"Send {command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}");
+            //if (command == ConbeeCommand.APS_DATA_INDICATION)
+            //    Logger.Trace($"Send {command}; apsde: {conbeeAPSDE:X2}; sequence: {writeSequence}");
         }
         writer.WritePayload(write);
         crc = (ushort)(~crc + 1);
@@ -410,13 +414,13 @@ public class ConbeeManager : ZigbeeManager
             crc += b;
             switch (b)
             {
-                case 192:
-                    port.BaseStream.WriteByte(219);
-                    port.BaseStream.WriteByte(220);
+                case 0xC0:
+                    port.BaseStream.WriteByte(0xDB);
+                    port.BaseStream.WriteByte(0xDC);
                     break;
-                case 219:
-                    port.BaseStream.WriteByte(219);
-                    port.BaseStream.WriteByte(221);
+                case 0xDB:
+                    port.BaseStream.WriteByte(0xDB);
+                    port.BaseStream.WriteByte(0xDD);
                     break;
                 default:
                     port.BaseStream.WriteByte(b);
@@ -429,6 +433,7 @@ public class ConbeeManager : ZigbeeManager
     #region SendAsync
     public override async Task SendAsync(ZigbeeRequest request)
     {
+        request.TaskSource = new();
         commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, request));
         await request.TaskSource.Task;
     }

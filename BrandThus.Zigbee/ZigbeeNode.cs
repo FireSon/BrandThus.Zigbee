@@ -28,7 +28,21 @@ public class ZigbeeNode(ZigbeeManager manager)
     private static Dictionary<int, Type> clusterTypes = new();
     #endregion
 
+    #region Poll
+    internal void Poll()
+    {
+        Console.WriteLine($"0x{Addr16:X4} MAC Poll request");
+        if (Addr64 == 0)
+            Requests.Add(IEEEDescriptor());
+        if (Descriptor == null)
+            Requests.Add(NodeDescriptor());
+        if (Power == null)
+            Requests.Add(NodeDescriptor());
+    }
+    #endregion
+
     #region Descriptors
+    public ZdoRequest IEEEDescriptor() => Zdo(1, w => w + Addr16 + (byte)0 + (byte)0);
     public ZdoRequest NodeDescriptor() => Zdo(2, w => w + Addr16);
     public ZdoRequest PowerDescriptor() => Zdo(3, w => w + Addr16);
     public ZdoRequest SimpleDescriptor() => Zdo(4, w => w + Addr16 + (byte)1);
@@ -45,45 +59,53 @@ public class ZigbeeNode(ZigbeeManager manager)
         DstEndPoint = 0,
         Src = Manager.Coordinator,
         SrcEndPoint = 0,
+        Radius = 0,
     };
     #endregion
 
     #region ZdoResponse
     internal void ZdoResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
     {
-        Logger.Info($"Addr: {Addr16} - {endPoint}");
+        Logger.Info($"Addr:0x{Addr16:X4} - {endPoint}");
         r.ReadByte();
         ZdoStatus num = r.ReadStatus();
-        ushort NwkAddr = r.ReadUInt16();
-        if (num == ZdoStatus.SUCCESS && NwkAddr == Addr16)
-        {
+        if (num == ZdoStatus.SUCCESS)
             switch (clusterId)
             {
-                case 2:
+                case 0x8001://IEEE response
+                    //Skipp IEEE address
+                    Addr64 = r.ReadUInt64();
+                    ushort NwkAddr = r.ReadUInt16();
+                    Logger.Info($"0x{Addr16:X4} - IEEE Address");
                     break;
-                case 32770:
+                case 0x8002://NodeDescriptor response
+                    NwkAddr = r.ReadUInt16();
                     Descriptor = new(r.ReadByte(), r.ReadByte(), r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt16(), r.ReadByte());
-                    Logger.Info($"Descriptor: {Addr16} - {Descriptor}");
+                    Logger.Info($"0x{Addr16:X4} NodeDescriptor -> : {Addr16:X4} - {Descriptor}");
                     break;
-                case 32771:
+                case 0x8003:
+                    NwkAddr = r.ReadUInt16();
                     Power = new PowerDescriptor(r.ReadUInt16());
-                    Logger.Info($"{Addr16} - {Power}");
+                    Logger.Info($"0x{Addr16:X4} PowerDescriptor -> Addr: {Addr16:X4} - Power: {Power}");
                     break;
-                case 32772:
+                case 0x8004:
+                    NwkAddr = r.ReadUInt16();
                     //Simple = new SimpleDescriptor(r.ReadByte(), r.ReadUInt16(), r.ReadByte(), r.ReadList<ushort>(), r.ReadList<ushort>());
-                    Logger.Info($"{Addr16} - {Simple}");
+                    Logger.Info($"{Addr16:X4} - {Simple}");
                     break;
-                case 32773:
+                case 0x8005:
+                    NwkAddr = r.ReadUInt16();
                     //Endpoints = r.ReadList<byte>();
-                    Logger.Info($"{Addr16} - {new Func<ZdoRequest>(EndPoints)}");
+                    Logger.Info($"0x{Addr16:X4} - {new Func<ZdoRequest>(EndPoints)}");
                     break;
-                case 32784:
+                case 0x8010:
                     Complex = new ComplexDescriptor(r.ReadByte(), r.ReadString(), r.ReadString(), r.ReadString());
                     break;
                 default:
                     break;
             }
-        }
+        else
+            Console.WriteLine("Error ZdoResponse");
     }
     #endregion
 
@@ -96,7 +118,7 @@ public class ZigbeeNode(ZigbeeManager manager)
         DstEndPoint = 1,
         Src = Manager.Coordinator,
         SrcEndPoint = 1,
-        Radius = 31,
+        Radius = 30,
         Direction = ZclCommandDirection.CLIENT_TO_SERVER,
         FrameType = frameType,
         CommandId = command
@@ -111,7 +133,7 @@ public class ZigbeeNode(ZigbeeManager manager)
         if ((r.ReadByte() & MASK_MANUFACTURER_SPECIFIC) != 0)
         {
             ushort ManufacturerCode = r.ReadUInt16();
-            Logger.Info("ManufacturerCode: " + ManufacturerCode);
+            Logger.Info($"0x{Addr16:X4} ManufacturerCode: " + ManufacturerCode);
         }
         byte seq = r.ReadByte();
         ZclCommand cmd = (ZclCommand)r.ReadByte();
@@ -151,7 +173,7 @@ public class ZigbeeNode(ZigbeeManager manager)
 
                     if (clusterType == null || !ZigbeeAttribute.Attributes.TryGetValue(key, out zigbeeAttribute))
                     {
-                        Logger.Info("Req:" + seq.ToString() + " Node: " + Addr16.ToString() + "=> Unknown attribute");
+                        Logger.Info("Req:" + seq.ToString() + " Node: " + Addr16.ToString("X4") + "=> Unknown attribute");
                         break;
                     }
                     else
@@ -163,7 +185,7 @@ public class ZigbeeNode(ZigbeeManager manager)
                     {
                         int num2 = (int)r.ReadByte();
                         object obj = zigbeeAttribute.Read(r);
-                        Logger.Info($"{Addr16} {endPoint}; Attr: {zigbeeAttribute.Cluster.Name} {zigbeeAttribute.AttrId:X4} {zigbeeAttribute.Name}: {obj}");
+                        Logger.Info($"Addr 0x{Addr16:X4} Ep:{endPoint}; Attr: {zigbeeAttribute.Cluster.Name} {zigbeeAttribute.AttrId:X4} {zigbeeAttribute.Name}: {obj}");
                         OnUpdate?.Invoke(zigbeeAttribute, endPoint, obj);
                     }
                     catch (Exception ex)
@@ -171,7 +193,7 @@ public class ZigbeeNode(ZigbeeManager manager)
                         ex.Trace();
                     }
                 else
-                    Logger.Info($"{Addr16} {endPoint}; Attr: {zigbeeAttribute.Cluster.Name} {zigbeeAttribute.AttrId:X4} {zigbeeAttribute.Name}: {zclStatus}");
+                    Logger.Info($"{Addr16:X4} {endPoint}; Attr: {zigbeeAttribute.Cluster.Name} {zigbeeAttribute.AttrId:X4} {zigbeeAttribute.Name}: {zclStatus}");
             }
         }
     }
