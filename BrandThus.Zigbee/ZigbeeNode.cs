@@ -253,6 +253,17 @@ namespace BrandThus.Zigbee
             w.WriteUInt16(maxTime);
             return w;
         }, ZclFrameType.ENTIRE_PROFILE_COMMAND));
+
+        internal Task ReportAsync<T>(Analog<T> attr, ushort minTime, ushort maxTime, T t) => Manager.SendAsync(ZclRequest(attr.Cluster, 6, w =>
+        {
+            w.WriteByte(0);
+            w.WriteUInt16(attr.AttrId);
+            w.WriteByte((byte)attr.Type);
+            w.WriteUInt16(minTime);
+            w.WriteUInt16(maxTime);
+            attr.Write(w, t);
+            return w;
+        }, ZclFrameType.ENTIRE_PROFILE_COMMAND));
         #endregion
 
         #region Write

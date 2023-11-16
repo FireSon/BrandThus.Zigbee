@@ -22,13 +22,12 @@ Zigbee.LogEvent = async (type, file, mbr, line, msg) => await Console.Out.WriteL
 Zigbee.OnUpdate = async (n, a, ep, v) => await Console.Out.WriteLineAsync($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
 
 ushort interval = 10;
+
+var plug = Zigbee.CreateNode((ushort)Convert.ToInt32("0x6a5c", 16));
+var temp = Zigbee.CreateNode((ushort)Convert.ToInt32("0x3988", 16));
+
 while (true)
 {
-    ZigbeeNode GetPlug()
-    {
-        int value = Convert.ToInt32("0x6a5c", 16);
-        return Zigbee.CreateNode((ushort)value);
-    }
     if (Console.KeyAvailable)
     {
         await Console.Out.WriteLineAsync();
@@ -39,72 +38,43 @@ while (true)
                 break;
             case ConsoleKey.D1:
                 //Turn plug On
-                var n = GetPlug();
-                await n.On().SendAsync();
+                await plug.On().SendAsync();
                 break;
             case ConsoleKey.D2:
                 //Turn plug Off
-                n = GetPlug();
-                await n.Off().SendAsync();
+                await plug.Off().SendAsync();
                 break;
             case ConsoleKey.D3:
                 //Get plug NodeDescriptor
-                n = GetPlug();
-                await n.NodeDescriptor().SendAsync();
-                await n.PowerDescriptor().SendAsync();
-                await n.SimpleDescriptor().SendAsync();
+                await plug.NodeDescriptor().SendAsync();
+                await plug.PowerDescriptor().SendAsync();
+                await plug.SimpleDescriptor().SendAsync();
                 break;
             case ConsoleKey.D4:
                 //Read the plug ManufacturerName
-                n = GetPlug();
-                await ZclBasic.ManufacturerName.ReadAsync(n);
+                await ZclBasic.ManufacturerName.ReadAsync(plug);
                 break;
             case ConsoleKey.D5:
                 //Read multiple plug attributes
-                n = GetPlug();
-                (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
+                (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(plug);
                 (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion +
-                    ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                    ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(plug);
                 break;
             case ConsoleKey.D6:
                 //Get plug To Report each 10 seconds the On state
-                n = GetPlug();
-                await ZclOnOff.OnOff.ReportAsync(n, interval, interval);
+                await ZclOnOff.OnOff.ReportAsync(plug, interval, interval);
                 interval = interval != 0 ? (ushort)0 : interval;
                 break;
-            case ConsoleKey.T:
-                n = GetPlug();
+
+            case ConsoleKey.D7:
+                //Get plug To Report each 10 seconds the On state
+                await ZclTemperatureMeasurement.MeasuredValue.ReportAsync(plug, 10, 10, 1);
                 break;
-            case ConsoleKey.O:
-                n = Zigbee.NodeList.FirstOrDefault(n => n.Addr16 == 14728);
-                //if (n != null)
-                //    n.Read(ZclTemperatureMeasurement.MeasuredValue, ZclTemperatureMeasurement.MinMeasuredValue, ZclTemperatureMeasurement.MaxMeasuredValue);
+            case ConsoleKey.D8:
+                //Get plug To Report each 10 seconds the On state
+                await ZclTemperatureMeasurement.MeasuredValue.ReportAsync(plug, 0, 0, 0);
                 break;
-            //case ConsoleKey.N:
-            //    foreach (var zn in Zigbee.NodeList)
-            //        Zigbee.SendAsync(zn.NodeDescriptor());
-            //    break;
-            //case ConsoleKey.P:
-            //    foreach (var zn in Zigbee.NodeList)
-            //        Zigbee.SendAsync(zn.PowerDescriptor());
-            //    break;
-            //case ConsoleKey.I:
-            //    foreach (var zn in Zigbee.NodeList)
-            //        if (zn.Addr64 == 0)
-            //            Zigbee.SendAsync(zn.IEEEDescriptor());
-            //    break;
-            //case ConsoleKey.P:
-            //    foreach (var c in Zigbee.Nodes)
-            //        c.Relay(false);
-            //    break;
-            //case ConsoleKey.T:
-            //    foreach (var c in Zigbee.Nodes)
-            //        c.Relay(null);
-            //    break;
-            //case ConsoleKey.R:
-            //    foreach (var c in Zigbee.Nodes)
-            //        c.Refresh();
-            //    break;
+
             case ConsoleKey.Enter: return;
         }
     }

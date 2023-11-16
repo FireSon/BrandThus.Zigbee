@@ -64,13 +64,17 @@ namespace BrandThus.Zigbee
     #region Analog
     public class Analog<T> : ZigbeeAttribute<T>
     {
-        internal Analog(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read) : base(cluster, id, name, type, read) { }
+        internal Analog(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read, Action<ZigbeeWriter, T> write) :
+            base(cluster, id, name, type, read) => Write = write;
+        internal Action<ZigbeeWriter, T> Write;
+        
         public void Report(ZigbeeNode node, ushort minTime, ushort maxTime, T t) => node.Report(this, minTime, maxTime, t);
     }
 
     public class AnalogR<T> : Analog<T>, IReadable
     {
-        internal AnalogR(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read) : base(cluster, id, name, type, read) { }
+        internal AnalogR(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read, Action<ZigbeeWriter, T> write) : 
+            base(cluster, id, name, type, read, write) { }
 
         #region Overloads
         public static Attributes operator +(AnalogR<T> a1, IReadable a2) => new Attributes() { a1, a2 };
@@ -78,17 +82,20 @@ namespace BrandThus.Zigbee
         #endregion
 
         public void Read(ZigbeeNode node) => node.Read(this);
+        public Task ReportAsync(ZigbeeNode node, ushort minTime, ushort maxTime, T t) => node.ReportAsync(this, minTime, maxTime, t);
         public Task<T> ReadAsync(ZigbeeNode node) => node.ReadAsync(this);
     }
     public class AnalogRW<T> : AnalogR<T>
     {
-        internal AnalogRW(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read) : base(cluster, id, name, type, read) { }
-        public void Write(ZigbeeNode node, T t) => node.Write(this, t);
+        internal AnalogRW(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read, Action<ZigbeeWriter, T> write) :
+            base(cluster, id, name, type, read, write)
+        { }
     }
     public class AnalogW<T> : Analog<T>
     {
-        internal AnalogW(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read) : base(cluster, id, name, type, read) { }
-        public void Write(ZigbeeNode node, T t) => node.Write(this, t);
+        internal AnalogW(ZigbeeCluster cluster, ushort id, string name, ZigbeeType type, Func<ZigbeeReader, T> read, Action<ZigbeeWriter, T> write) :
+            base(cluster, id, name, type, read, write)
+        { }
     }
     #endregion
 
