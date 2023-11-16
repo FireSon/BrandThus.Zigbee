@@ -1,7 +1,7 @@
 # BrandThus.Zigbee
 C# zigbee interface using Conbee2
 
-An example using a Ikea plug:
+An example using an Ikea plug:
 
 ```cs
 using BrandThus.Zigbee.Conbee;
@@ -92,6 +92,7 @@ For me this is a work in progress. The software does what it needs to do for me.
 1) Discovery of nodes is very limited. All nodes are automaticallly added when they send information. All clusters are automatically loaded if they are used, either by the program itself, our by a node in the network.
 2) Not all read/write operations have been tested, mainly because I do not have devices which send that information 
 3) Other dongles
+4) The ReadAsyn does not return the read value. An event is raised when the attribute is read with the correct value.
 
  
 # ConBeeII
