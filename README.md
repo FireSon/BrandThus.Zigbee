@@ -61,7 +61,8 @@ while (true)
                 //Read multiple plug attributes
                 n = GetPlug();
                 (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + 
+                    ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
                 break;
             case ConsoleKey.D6:
                 //Get plug To Report each 10 seconds the On state
@@ -76,13 +77,21 @@ while (true)
 # Background
 
 It was quite challenging to find out how Zigbee works. I have used multiple other projects for inspiration like [ZigbeeNet](https://github.com/Mr-Markus/ZigbeeNet), [Zigbee2mqtt](https://github.com/Koenkk/zigbee2mqtt) and [Zigbee-herdsman](https://github.com/Koenkk/zigbee-herdsman)
-The reason to write my own library was mainly that the other ones were very difficult to understand. The whole request response mechanism was hard to follow and seemed too complex form me. 
+The reason to write my own library was mainly that the other ones were very difficult to understand. The whole request response mechanism was hard to follow and seemed too complex for me. 
 Another reason was that I had bought a few devices in China, which did not work (probably because of my lack of knowledge) so I set out to write something myself.
 
 Code generators, seemed to be the right approach dealing with the many attributes and clusters of Zigbee. I found in the folder of my Dresden Elektronik application an Xml file which contained all the attributes and commands which they know of. This file is used as input for the code generator, and all Zcl clusters are generated automatically.
 They can be found under the Dependancies/Analyzers/BrandThus.Zigbee.Tools
+[<img src="generated files.png" alt="The generated cluster files">](generated files.png)
 
+# Current development status 
 
+For me this is a work in progress. The software does what it needs to do for me. There are however several area's which need to be improved in order to be fully functional. 
+1) Discovery of nodes is very limited. All nodes are automaticallly added when they send information. All clusters are automatically loaded if they are used, either by the program itself, our by a node in the network.
+2) Not all read/write operations have been tested, mainly because I do not have devices which send that information 
+3) Other dongles
+
+ 
 # ConBeeII
 
 BrandThus.Zigbee is developed using a ConBeeII usb stick from Dresden Elektronik
