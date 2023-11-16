@@ -1,1 +1,0 @@
-namespace BrandThus.Zigbee.Types;public struct Bmp8 : IZigbeeType{	byte[] IZigbeeType.data { get; set; }	public static implicit operator Bmp8(byte value)	{		return IZigbeeType.Create<Bmp8>(value);	}}

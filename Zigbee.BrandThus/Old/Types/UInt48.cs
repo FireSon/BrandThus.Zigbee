@@ -1,1 +1,0 @@
-namespace BrandThus.Zigbee.Types;public struct UInt48 : IZigbeeType{	byte[] IZigbeeType.data { get; set; }	public static implicit operator UInt48(uint value)	{		return IZigbeeType.Create<UInt48>(value, 6);	}	public static implicit operator UInt48(ulong value)	{		return IZigbeeType.Create<UInt48>(value, 6);	}}
