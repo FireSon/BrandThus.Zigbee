@@ -1,13 +1,14 @@
-namespace BrandThus.Zigbee.Conbee;
-
-internal enum ConbeeStatus
+namespace BrandThus.Zigbee.Conbee
 {
-    SUCCESS,
-    FAILURE,
-    BUSY,
-    TIMEOUT,
-    UNSUPPORTED,
-    ERROR,
-    NO_NETWORK,
-    INVALID_VALUE
+    internal enum ConbeeStatus
+    {
+        SUCCESS,
+        FAILURE,
+        BUSY,
+        TIMEOUT,
+        UNSUPPORTED,
+        ERROR,
+        NO_NETWORK,
+        INVALID_VALUE
+    }
 }

@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution", "Solution", "{B7
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zigbee", "Zigbee.prev\Zigbee.csproj", "{62472AD0-201E-4F4B-9109-C9B04A2C3A7E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrandThus.Zigbee.Generator", "BrandThus.Zigbee.Generator\BrandThus.Zigbee.Generator.csproj", "{E2E1F2B7-F830-4EBB-B139-CB3CCC10B0CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrandThus.Zigbee.Tools", "BrandThus.Zigbee.Tools\BrandThus.Zigbee.Tools.csproj", "{453FB594-A646-4484-8438-270FC8B9ED57}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +35,10 @@ Global
 		{62472AD0-201E-4F4B-9109-C9B04A2C3A7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62472AD0-201E-4F4B-9109-C9B04A2C3A7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62472AD0-201E-4F4B-9109-C9B04A2C3A7E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E2E1F2B7-F830-4EBB-B139-CB3CCC10B0CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E2E1F2B7-F830-4EBB-B139-CB3CCC10B0CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E2E1F2B7-F830-4EBB-B139-CB3CCC10B0CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E2E1F2B7-F830-4EBB-B139-CB3CCC10B0CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{453FB594-A646-4484-8438-270FC8B9ED57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{453FB594-A646-4484-8438-270FC8B9ED57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{453FB594-A646-4484-8438-270FC8B9ED57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{453FB594-A646-4484-8438-270FC8B9ED57}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

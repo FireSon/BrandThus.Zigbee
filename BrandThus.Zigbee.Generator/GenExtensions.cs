@@ -25,6 +25,15 @@ namespace BrandThus.Zigbee.Generator
             return str;
         }
 
+        public static string ToLowerCase(this string str)
+        {
+            if (!string.IsNullOrEmpty(str) && str.Length > 1)
+            {
+                return char.ToLowerInvariant(str[0]) + str.Substring(1);
+            }
+            return str;
+        }
+
         private static string indent;
         public static void Indent(this StringBuilder sb)
         {
@@ -56,8 +65,9 @@ namespace BrandThus.Zigbee.Generator
                 return;
 
             sb.AppendLine($"{indent}/// <summary>");
-
-            var words = comment.Split(new char[] { ' ', '\r', '\n' });
+            comment = comment.Trim().Replace("\t", " ");
+            while (comment.IndexOf("  ") >= 0) comment = comment.Replace("  ", " ");
+            var words = comment.Split(new char[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             int idx = 0;
             while (idx < words.Length)
             {
@@ -119,16 +129,17 @@ namespace BrandThus.Zigbee.Generator
                     str[i + 1] = char.ToUpper(str[i+1]);
             value = new String(str);
 
-            foreach (var c in "|,. -\\/–()[]?'")
+            foreach (var c in "|,. -\\/–()[]?'’+°&³")
                 value = value.Replace(new string(c, 1), "");
 
             value = value.Replace("é", "e");
             value = value.Replace("ü", "u");
             value = value.Replace("%", "Pct");
             
-            if (char.IsDigit(value[0]))
+            if (value.Length > 0 && char.IsDigit(value[0]))
                 value = "_" + value;
             return value;
         }
+        public static string Parameter(this string value) => ToLowerCase(Property(value));
     }
 }

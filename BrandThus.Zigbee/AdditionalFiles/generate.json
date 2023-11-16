@@ -1,0 +1,8 @@
+{
+  "Manufacturers": [
+    "0x1144"
+  ],
+  "SkipCluster": [
+    "Tuya specific"
+  ]
+}

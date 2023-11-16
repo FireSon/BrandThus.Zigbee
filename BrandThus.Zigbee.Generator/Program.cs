@@ -62,29 +62,65 @@ foreach (XmlNode cl in xmlDoc.GetElementsByTagName("cluster"))
     {
         string attr(string name) => n.Attributes?.GetNamedItem(name)?.Value ?? string.Empty;
         string nattr(string name) => attr(name).Property();
-        string load() => attr("type") switch
+        string load(string cast) => attr("type") switch
         {
             "cstring" => "r => r.ReadString()",
             "ostring" => "r => r.ReadString()",
+            "lostring" => "r => r.ReadString()",
             "seckey" => "r => r.ReadString()",
             "bool" => "r => r.ReadBool()",
             "bmp8" => "r => r.ReadByte()",
             "bmp16" => "r => r.ReadInt16()",
+            "bmp24" => "r => r.ReadInt24()",
             "bmp32" => "r => r.ReadInt32()",
-            "enum8" => "r => r.ReadByte()",
-            "enum16" => "r => r.ReadInt16()",
+            "dat16" => "r => r.ReadInt16()",
+
+            "enum8" => $"r => ({cast})r.ReadByte()",
+            "enum16" => $"r => ({cast})r.ReadInt16()",
+
             "u8" => "r => r.ReadByte()",
             "u16" => "r => r.ReadUInt16()",
             "u24" => "r => r.ReadUInt24()",
             "u32" => "r => r.ReadUInt32()",
             "u48" => "r => r.ReadUInt48()",
+            "u64" => "r => r.ReadUInt64()",
             "uid" => "r => r.ReadInt64()",
+            "s8" => "r => r.ReadSByte()",
             "s16" => "r => r.ReadInt16()",
+            "s24" => "r => r.ReadInt24()",
             "s32" => "r => r.ReadInt32()",
             "utc" => "r => r.ReadDateTime()",
+            "array" => "r => r.ReadArray()",
             "float" => "r => r.ReadSingle()",
             _ => "r => r.ReadByte()",
         };
+        string zType(XmlNode x) => x.Attributes.GetNamedItem("type").Value switch
+        {
+            "cstring" => "string",
+            "ostring" => "string",
+            "bool" => "bool",
+            "bmp8" => "byte",
+            "bmp16" => "Int16",
+            "enum8" => "byte",
+            "enum16" => "Int16",
+            "u8" => "byte",
+            "u16" => "ushort",
+            "u32" => "uint",
+            "u64" => "ulong",
+            "uid" => "Int64",
+            "s8" => "byte",
+            "s16" => "short",
+            "s32" => "int",
+            "utc" => "DateTime",
+            _ => "Byte",
+        };
+        string xName(XmlNode x)
+        {
+            var name = x.Attributes.GetNamedItem("name").Value;
+            if (string.IsNullOrEmpty(name))
+                name = x.ChildNodes.Cast<XmlNode>().FirstOrDefault(c => c.Name == "description")?.InnerText + x.Attributes.GetNamedItem("id").Value;
+            return name ?? string.Empty;
+        }
 
         if ((isCommand && n.Name != "command") || (!isCommand && n.Name == "command"))
             return;
@@ -109,13 +145,76 @@ foreach (XmlNode cl in xmlDoc.GetElementsByTagName("cluster"))
             case "attribute":
                 var name = prefix + nattr("name") + suffix;
                 var aid = attr("id");
+                var type = attr("type");
                 if (name.Contains("Unknown") || attrb.Contains(aid))
                     return;
                 attrb.Add(aid);
-                sb.Code($"public static ReportAttribute {name} {{ get; }} = zcl.Report({aid}, \"{attr("name")}\", {load()});");
+
+                var cast = "";
+                if (type.StartsWith("enum"))
+                {
+                    cast = $"{name}Enum";
+                    sb.Code($"public enum {cast}");
+                    sb.Indent();
+                    var items1 = new List<string>();
+                    foreach (var v in n.ChildNodes.Cast<XmlNode>().Where(c => c.Name == "value"))
+                    {
+                        var pname = xName(v).Property().ToUpperCase();
+                        if (items1.Contains(pname))
+                        {
+                            var cnt = 2;
+                            while (items1.Contains(pname + cnt.ToString())) cnt++;
+                            pname += cnt.ToString();
+                        }
+                        items1.Add(pname);
+                        sb.Code($"{pname} = {v.Attributes.GetNamedItem("value").Value},");
+                    }
+                    sb.UnIndent();
+                    sb.AppendLine();
+                }
+
+                var descr = n.ChildNodes.Cast<XmlNode>().FirstOrDefault(c => c.Name == "description");
+                if (descr != null)
+                    sb.Comment(descr.InnerText);
+
+                sb.Code($"public static ReportAttribute {name} {{ get; }} = zcl.Report({aid}, \"{attr("name")}\", ZigbeeType.{attr("type").ToCamelCase()}, {load(cast)});");
                 break;
             case "command":
-                sb.Code($"public static Task {nattr("name")} => Task.CompletedTask;");
+                aid = attr("id");
+                name = nattr("name");
+
+                List<XmlNode> payload = [];
+                foreach (XmlNode c in n.ChildNodes)
+                    if (c.Name == "payload")
+                    {
+                        payload = c.ChildNodes.Cast<XmlNode>().Where(c => c.Name == "attribute").ToList();
+                        break;
+                    }
+
+                var args = "";
+                var write = "";
+                var items = new List<string>();
+                foreach (var v in payload)
+                {
+                    var pname = xName(v).Parameter();
+                    if (items.Contains(pname))
+                    {
+                        var cnt = 2;
+                        while (items.Contains(pname + cnt.ToString())) cnt++;
+                        pname += cnt.ToString();
+                    }
+                    items.Add(pname);
+                    args += $", {zType(v)} {pname}";
+                    write += $"+ {pname}";
+                }
+
+                if (!string.IsNullOrEmpty(write))
+                    write = ", w => w" + write;
+
+                descr = n.ChildNodes.Cast<XmlNode>().FirstOrDefault(c => c.Name == "description");
+                if (descr != null)
+                    sb.Comment(descr.InnerText);
+                sb.Code($"public static Task {name}(this ZigbeeNode node{args}) => node.Zcl(zcl, {aid}{write});");
                 break;
         }
     }
@@ -123,81 +222,3 @@ foreach (XmlNode cl in xmlDoc.GetElementsByTagName("cluster"))
     sb.UnIndent();
     File.WriteAllText(Path.Combine("..", "..", "..", "..", "BrandThus.Zigbee", "Clusters", $"{id.Value} {clusterName}.cs"), sb.ToString());
 }
-
-//foreach (var d in domains.Values)
-//{
-//    sb.Clear();
-//    //sb.NameSpaces(namespaces.ToArray());
-//    //sb.AppendLine();
-//    sb.AppendLine("namespace BrandThus.Zigbee.Clusters;");
-
-//    //Write the clusters
-//    foreach (var e in d.Clusters)
-//        if (!string.IsNullOrEmpty(e.Help))
-//        {
-//            sb.AppendLine();
-
-//            var classname = "Zcl" + e.Name.Replace(" ", "");
-//            sb.Comment(e.Help);
-//            sb.Code($"public static class {classname}");
-//            sb.Indent();
-//            bool isFirst = true, isServer = true;
-//            //Add the attributes
-//            foreach (XmlNode child in e.Node.ChildNodes)
-//                switch (child.Name)
-//                {
-//                    case "server": 
-//                        doNodes(child);
-//                        break;
-//                    case "client":
-//                        isFirst = true;
-//                        isServer = false;
-//                        doNodes(child);
-//                        break;
-//                }
-
-//            void doNodes(XmlNode n)
-//            {
-//                if (n.Name == "attribute-set" && n.Attributes.GetNamedItem("description") is XmlNode descr)
-//                {
-//                    if (!isFirst) sb.AppendLine();
-//                    sb.Code($"//{descr.Value}");
-//                }
-//                //else if (n.Name == "attribute" && n.Attributes.GetNamedItem("name") is XmlNode name)
-//                //{
-//                //    isFirst = false;
-//                //    sb.Code($"//{name.Value}");
-//                //}
-//                else if (n.Name == "command" && n.Attributes.GetNamedItem("name") is XmlNode cname)
-//                {
-//                    if (!isFirst) sb.AppendLine();
-//                    isFirst = false;
-//                    sb.Code($"//Task {cname.Value}");
-//                }
-
-//                foreach (XmlNode c in n.ChildNodes)
-//                    doNodes(c);
-//            }
-
-//            sb.UnIndent();
-//        }
-
-//    File.WriteAllText(Path.Combine("..", "..", "..", "..", "BrandThus.Zigbee", "Clusters", $"{d.Name.Replace(" ","")}.cs"), sb.ToString());
-//}
-
-//Console.WriteLine();
-
-//internal class Domain
-//{
-//    internal string? Name { get; set; }
-//    internal string? Help { get; set; }
-//    internal List<Cluster> Clusters = new();
-//}
-
-//internal class Cluster
-//{
-//    internal string? Name { get; set; }
-//    internal string? Id { get; set; }
-//    internal string? Help { get; set; }
-//    internal XmlNode Node = default!;
-//}

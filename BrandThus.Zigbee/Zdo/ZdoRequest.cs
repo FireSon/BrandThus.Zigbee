@@ -1,14 +1,22 @@
-﻿using System.ComponentModel.Design;
+﻿using System;
+using System.ComponentModel.Design;
 
-namespace BrandThus.Zigbee.Zdo;
-
-public class ZdoRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : ZigbeeRequest(write)
+namespace BrandThus.Zigbee.Zdo
 {
-    #region WritePayLoad
-    internal override void WritePayLoad(ZigbeeWriter writer)
+    public class ZdoRequest : ZigbeeRequest
     {
-        writer.WriteByte(TransactionId);
-        write?.Invoke(writer);
-    } 
-    #endregion
+        #region Constructor
+        public ZdoRequest(Func<ZigbeeWriter, ZigbeeWriter>? write = null) : base(write)
+        {
+        } 
+        #endregion
+
+        #region WritePayLoad
+        internal override void WritePayLoad(ZigbeeWriter writer)
+        {
+            writer.WriteByte(TransactionId);
+            Write?.Invoke(writer);
+        }
+        #endregion
+    }
 }
