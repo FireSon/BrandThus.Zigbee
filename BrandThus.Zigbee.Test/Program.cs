@@ -1,6 +1,7 @@
 ﻿using BrandThus.Zigbee.Conbee;
 using BrandThus.Zigbee.Clusters;
 using Microsoft.Extensions.Configuration;
+using BrandThus.Zigbee;
 
 Console.WriteLine("Zigbee Test program");
 
@@ -18,6 +19,11 @@ Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{DateTime.
 
 while (true)
 {
+    ZigbeeNode GetPlug()
+    {
+        int value = Convert.ToInt32("0x6a5c", 16);
+        return Zigbee.CreateNode((ushort)value);
+    }
     if (Console.KeyAvailable)
     {
         Console.WriteLine();
@@ -29,57 +35,38 @@ while (true)
                 Console.Clear();
                 break;
             case ConsoleKey.D1:
-                int value = Convert.ToInt32("0x6a5c", 16);
-                var n = Zigbee.CreateNode((ushort)value);
-                n.On().SendAsync();
+                //Turn plug On
+                var n = GetPlug();
+                await n.On().SendAsync();
                 break;
             case ConsoleKey.D2:
-                //
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
-                n.Off().SendAsync();
+                //Turn plug Off
+                n = GetPlug();
+                await n.Off().SendAsync();
                 break;
             case ConsoleKey.D3:
-                //
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
-                n.NodeDescriptor().SendAsync();
-                //(ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                //(ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
-                break;
-            case ConsoleKey.D6:
-                //
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
-                ZclOnOff.OnOff.ReportAsync(n, 10, 10);
-                //(ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                //(ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                //Get plug NodeDescriptor
+                n = GetPlug();
+                await n.NodeDescriptor().SendAsync();
                 break;
             case ConsoleKey.D4:
-                //
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
-                ZclBasic.ManufacturerName.ReadAsync(n);
-                //(ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                //(ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                //Read the plug ManufacturerName
+                n = GetPlug();
+                await ZclBasic.ManufacturerName.ReadAsync(n);
                 break;
             case ConsoleKey.D5:
-                //x
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
-                ZclOnOff.OnOff.Report(n, 0, 0);
-                ZclOnOff.OnOff.Read(n);
-                ZclOnOff.OnTime.Write(n, 0);
-                ZclOnOff.OnOff.Read(n);
-                ZclOnOff.OnTime.Report(n, 0, 0, 1);
-                //var v = n.Read(ZclOnOff.OnTime);
-                //ZclOnOff.OnTime.Write(n, 1);
-                //ZclOnOff.OnTime.Read(n, ZclOnOff.OffWaitTime);
+                //Read multiple plug attributes
+                n = GetPlug();
+                (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
+                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                break;
+            case ConsoleKey.D6:
+                //Get plug To Report each 10 seconds the On state
+                n = GetPlug();
+                await ZclOnOff.OnOff.ReportAsync(n, 10, 10);
                 break;
             case ConsoleKey.T:
-                //
-                value = Convert.ToInt32("0x6a5c", 16);
-                n = Zigbee.CreateNode((ushort)value);
+                n = GetPlug();
                 break;
             case ConsoleKey.O:
                 n = Zigbee.NodeList.FirstOrDefault(n => n.Addr16 == 14728);
