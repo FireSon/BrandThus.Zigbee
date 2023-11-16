@@ -82,6 +82,7 @@ Another reason was that I had bought a few devices in China, which did not work 
 
 Code generators, seemed to be the right approach dealing with the many attributes and clusters of Zigbee. I found in the folder of my Dresden Elektronik application an Xml file which contained all the attributes and commands which they know of. This file is used as input for the code generator, and all Zcl clusters are generated automatically.
 They can be found under the Dependancies/Analyzers/BrandThus.Zigbee.Tools
+
 [<img src="generated files.png" alt="The generated cluster files">](generated files.png)
 
 # Current development status 
