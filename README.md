@@ -1,14 +1,12 @@
 # BrandThus.Zigbee
 C# zigbee interface using Conbee2
 
-A basic example here:
+An example using a Ikea plug:
 
 ```cs
 using BrandThus.Zigbee.Conbee;
 using BrandThus.Zigbee.Clusters;
 using Microsoft.Extensions.Configuration;
-
-Console.WriteLine("Zigbee Test program");
 
 #region Get configuration
 var environment = args.Length == 1 ? args[0] : "Production";
@@ -20,7 +18,10 @@ var config = configuration.Build();
 
 var Zigbee = new ConbeeManager(config, new());
 Zigbee.OnLine = () => Console.WriteLine("Online");
+//Program logging
 Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{DateTime.Now} {mbr} {line} {msg}");
+//Attribute has changed
+Zigbee.OnUpdate = (n, a, ep, v) => Console.WriteLine($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
 
 while (true)
 {

@@ -15,7 +15,10 @@ var config = configuration.Build();
 
 var Zigbee = new ConbeeManager(config, new());
 Zigbee.OnLine = () => Console.WriteLine("Online");
+//Program logging
 Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{DateTime.Now} {mbr} {line} {msg}");
+//Attribute has changed
+Zigbee.OnUpdate = (n, a, ep, v) => Console.WriteLine($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
 
 while (true)
 {
@@ -29,8 +32,6 @@ while (true)
         Console.WriteLine();
         switch (Console.ReadKey().Key)
         {
-            case ConsoleKey.Enter: goto ready;
-
             case ConsoleKey.C:
                 Console.Clear();
                 break;
@@ -58,7 +59,8 @@ while (true)
                 //Read multiple plug attributes
                 n = GetPlug();
                 (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
+                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + 
+                    ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
                 break;
             case ConsoleKey.D6:
                 //Get plug To Report each 10 seconds the On state
@@ -86,18 +88,19 @@ while (true)
             //        if (zn.Addr64 == 0)
             //            Zigbee.SendAsync(zn.IEEEDescriptor());
             //    break;
-                //case ConsoleKey.P:
-                //    foreach (var c in Zigbee.Nodes)
-                //        c.Relay(false);
-                //    break;
-                //case ConsoleKey.T:
-                //    foreach (var c in Zigbee.Nodes)
-                //        c.Relay(null);
-                //    break;
-                //case ConsoleKey.R:
-                //    foreach (var c in Zigbee.Nodes)
-                //        c.Refresh();
-                //    break;
+            //case ConsoleKey.P:
+            //    foreach (var c in Zigbee.Nodes)
+            //        c.Relay(false);
+            //    break;
+            //case ConsoleKey.T:
+            //    foreach (var c in Zigbee.Nodes)
+            //        c.Relay(null);
+            //    break;
+            //case ConsoleKey.R:
+            //    foreach (var c in Zigbee.Nodes)
+            //        c.Refresh();
+            //    break;
+            case ConsoleKey.Enter: goto ready;
         }
         Console.WriteLine("Handled");
     }
