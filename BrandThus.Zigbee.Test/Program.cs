@@ -21,6 +21,7 @@ Zigbee.LogEvent = async (type, file, mbr, line, msg) => await Console.Out.WriteL
 //Attribute has changed
 Zigbee.OnUpdate = async (n, a, ep, v) => await Console.Out.WriteLineAsync($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
 
+ushort interval = 10;
 while (true)
 {
     ZigbeeNode GetPlug()
@@ -50,6 +51,8 @@ while (true)
                 //Get plug NodeDescriptor
                 n = GetPlug();
                 await n.NodeDescriptor().SendAsync();
+                await n.PowerDescriptor().SendAsync();
+                await n.SimpleDescriptor().SendAsync();
                 break;
             case ConsoleKey.D4:
                 //Read the plug ManufacturerName
@@ -66,7 +69,8 @@ while (true)
             case ConsoleKey.D6:
                 //Get plug To Report each 10 seconds the On state
                 n = GetPlug();
-                await ZclOnOff.OnOff.ReportAsync(n, 10, 10);
+                await ZclOnOff.OnOff.ReportAsync(n, interval, interval);
+                interval = interval != 0 ? (ushort)0 : interval;
                 break;
             case ConsoleKey.T:
                 n = GetPlug();
@@ -103,7 +107,8 @@ while (true)
             //    break;
             case ConsoleKey.Enter: return;
         }
-        await Console.Out.WriteLineAsync("Handled");
     }
+    await Console.Out.WriteAsync(".");
+    await Task.Delay(1000);
 }
 

@@ -64,11 +64,11 @@ namespace BrandThus.Zigbee
         #endregion
 
         #region Digital attributes
-        internal DigitalR<T> Enum8R<T>(ushort id, string name) => new DigitalR<T>(this, id, name, ZigbeeType.S8, r => (T)(object)r.ReadByte());
-        internal DigitalRW<T> Enum8RW<T>(ushort id, string name) => new DigitalRW<T>(this, id, name, ZigbeeType.S8, r => (T)(object)r.ReadByte());
+        internal DigitalR<T> Enum8R<T>(ushort id, string name) => new DigitalR<T>(this, id, name, ZigbeeType.S8, r => (T)Enum.ToObject(typeof(T), r.ReadByte()));
+        internal DigitalRW<T> Enum8RW<T>(ushort id, string name) => new DigitalRW<T>(this, id, name, ZigbeeType.S8, r => (T)Enum.ToObject(typeof(T), r.ReadByte()));
 
-        internal DigitalR<T> Enum16R<T>(ushort id, string name) => new DigitalR<T>(this, id, name, ZigbeeType.S16, r => (T)(object)r.ReadInt16());
-        internal DigitalRW<T> Enum16RW<T>(ushort id, string name) => new DigitalRW<T>(this, id, name, ZigbeeType.S16, r => (T)(object)r.ReadInt16());
+        internal DigitalR<T> Enum16R<T>(ushort id, string name) => new DigitalR<T>(this, id, name, ZigbeeType.S16, r => (T)Enum.ToObject(typeof(T), r.ReadInt16()));
+        internal DigitalRW<T> Enum16RW<T>(ushort id, string name) => new DigitalRW<T>(this, id, name, ZigbeeType.S16, r => (T)Enum.ToObject(typeof(T), r.ReadInt16()));
 
         internal DigitalR<string> CstringR(ushort id, string name) => new DigitalR<string>(this, id, name, ZigbeeType.Cstring, r => r.ReadString());
         internal DigitalRW<string> CstringRW(ushort id, string name) => new DigitalRW<string>(this, id, name, ZigbeeType.Cstring, r => r.ReadString());

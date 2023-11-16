@@ -27,7 +27,7 @@ namespace BrandThus.Zigbee.Conbee
 
         #region Properties
         private readonly string portName;
-        private DateTime portcheck;
+        private DateTime portCheck;
         private SerialPort? port;
         private readonly Thread portThread;
         private DateTime allowJoin;
@@ -54,7 +54,7 @@ namespace BrandThus.Zigbee.Conbee
                 {
                     if (port == null || !port.IsOpen)
                     {
-                        TimeSpan msec = portcheck - DateTime.Now;
+                        TimeSpan msec = portCheck - DateTime.Now;
                         if (msec.TotalMilliseconds > 0)
                             Thread.Sleep(msec);
                         port?.Dispose();
@@ -99,7 +99,7 @@ namespace BrandThus.Zigbee.Conbee
                     {
                         if (port.BytesToRead > 0)
                             ReadPort();
-                        else if (!commands.IsEmpty && (conbeeAPSDE == 0 || (conbeeAPSDE & 0x7F) != 0) && portcheck < DateTime.Now)
+                        else if (!commands.IsEmpty && (conbeeAPSDE == 0 || (conbeeAPSDE & 0x7F) != 0) && portCheck < DateTime.Now)
                             WriteCommand(ConbeeCommand.DEVICE_STATE);
                     }
                     Thread.Sleep(1);
@@ -108,7 +108,7 @@ namespace BrandThus.Zigbee.Conbee
                 {
                     port?.Dispose();
                     port = null;
-                    portcheck = DateTime.Now.AddSeconds(5);
+                    portCheck = DateTime.Now.AddSeconds(5);
                 }
                 catch (Exception ex)
                 {
@@ -266,9 +266,9 @@ namespace BrandThus.Zigbee.Conbee
                             }
                         }
                         if (drq.ProfileId == 0)
-                            Logger.Trace($"Zdo Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
+                            Logger.Trace($"Zdo Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2} aspe:{reader[7]:X4}");
                         else
-                            Logger.Trace($"Zcl Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
+                            Logger.Trace($"Zcl Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2} aspe:{reader[7]:X4}");
 
                         drq.TaskSource?.SetResult(cfStatus == 0);
                     }
@@ -398,7 +398,7 @@ namespace BrandThus.Zigbee.Conbee
             port.BaseStream.WriteByte((byte)crc);
             port.BaseStream.WriteByte((byte)(crc >> 8));
             port.BaseStream.WriteByte(192);
-            portcheck = DateTime.Now.AddMilliseconds(50);
+            portCheck = DateTime.Now.AddMilliseconds(50);
             void write(byte b)
             {
                 crc += b;

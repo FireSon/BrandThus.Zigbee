@@ -206,9 +206,8 @@ namespace BrandThus.Zigbee
         #endregion
 
         #region Read
-        internal void Read(params IReadable[] attributes) => Requests.Add(ZclRequest(attributes[0].Cluster, 0, w =>
+        internal void Read(params IReadable[] attributes) => Manager.SendAsync(ZclRequest(attributes[0].Cluster, 0, w =>
         {
-            w.WriteByte(attributes.Length);
             foreach (var a in attributes)
                 w.WriteUInt16(a.AttrId);
             return w;

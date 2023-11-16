@@ -50,7 +50,7 @@ namespace BrandThus.Zigbee
         {
             int size = ReadByte();
             var result = new List<T>(size);
-            while (size > 0)
+            while (size-- > 0)
                 result.Add(read(this));
             return result;
         }
