@@ -42,7 +42,6 @@ namespace BrandThus.Zigbee
         #region Poll
         internal void Poll()
         {
-            Console.WriteLine($"0x{Addr16:X4} MAC Poll request");
             if (Addr64 == 0)
                 Requests.Add(IEEEDescriptor());
             if (Descriptor == null)
@@ -115,8 +114,6 @@ namespace BrandThus.Zigbee
                     default:
                         break;
                 }
-            else
-                Console.WriteLine("Error ZdoResponse");
         }
         #endregion
 
@@ -187,8 +184,6 @@ namespace BrandThus.Zigbee
                             Logger.Info("Req:" + seq.ToString() + " Node: " + Addr16.ToString("X4") + "=> Unknown attribute");
                             break;
                         }
-                        else
-                            Console.WriteLine(clusterType.Name);
                     }
                     var zclStatus = noStatus ? ZclStatus.SUCCESS : (ZclStatus)r.ReadByte();
                     if (zclStatus == ZclStatus.SUCCESS)

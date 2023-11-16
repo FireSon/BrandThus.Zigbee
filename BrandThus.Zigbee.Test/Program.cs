@@ -3,7 +3,8 @@ using BrandThus.Zigbee.Clusters;
 using Microsoft.Extensions.Configuration;
 using BrandThus.Zigbee;
 
-Console.WriteLine("Zigbee Test program");
+
+await Console.Out.WriteLineAsync("Zigbee Test program");
 
 #region Get configuration
 var environment = args.Length == 1 ? args[0] : "Production";
@@ -14,11 +15,11 @@ var config = configuration.Build();
 #endregion
 
 var Zigbee = new ConbeeManager(config, new());
-Zigbee.OnLine = () => Console.WriteLine("Online");
+Zigbee.OnLine = async () => await Console.Out.WriteLineAsync("Online");
 //Program logging
-Zigbee.LogEvent = (type, file, mbr, line, msg) => Console.WriteLine($"{DateTime.Now} {mbr} {line} {msg}");
+Zigbee.LogEvent = async (type, file, mbr, line, msg) => await Console.Out.WriteLineAsync($"{DateTime.Now} {mbr} {line} {msg}");
 //Attribute has changed
-Zigbee.OnUpdate = (n, a, ep, v) => Console.WriteLine($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
+Zigbee.OnUpdate = async (n, a, ep, v) => await Console.Out.WriteLineAsync($"{DateTime.Now} => Node:0x{n.Addr16:X4} Attr:{a.Name} Ep:{ep} Value:{v}");
 
 while (true)
 {
@@ -29,7 +30,7 @@ while (true)
     }
     if (Console.KeyAvailable)
     {
-        Console.WriteLine();
+        await Console.Out.WriteLineAsync();
         switch (Console.ReadKey().Key)
         {
             case ConsoleKey.C:
@@ -59,7 +60,7 @@ while (true)
                 //Read multiple plug attributes
                 n = GetPlug();
                 (ZclOnOff.OnOff + ZclOnOff.OnTime).Read(n);
-                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion + 
+                (ZclBasic.ManufacturerName + ZclBasic.ZCLVersion + ZclBasic.ApplicationVersion +
                     ZclBasic.ModelIdentifier + ZclBasic.PowerSource).Read(n);
                 break;
             case ConsoleKey.D6:
@@ -100,11 +101,9 @@ while (true)
             //    foreach (var c in Zigbee.Nodes)
             //        c.Refresh();
             //    break;
-            case ConsoleKey.Enter: goto ready;
+            case ConsoleKey.Enter: return;
         }
-        Console.WriteLine("Handled");
+        await Console.Out.WriteLineAsync("Handled");
     }
 }
 
-ready:
-Console.WriteLine();

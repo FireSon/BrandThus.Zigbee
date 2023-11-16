@@ -14,16 +14,9 @@ namespace BrandThus.Zigbee.Conbee
         #region Constructor
         public ConbeeManager(IConfiguration configuration, CancellationToken stoppingToken)
         {
-            ////Load the Nodes
-            //var s = configuration.GetSection("Zigbee:Nodes");
-            //if (s.Exists())
-            //    foreach (var c in s.GetChildren())
-            //        if (c.Value is string addr && !string.IsNullOrWhiteSpace(addr))
-            //            Nodes.Add(addr, new ZigbeeNode(this));
-
             //Open the SerialPort
             portName = configuration["Zigbee:Port"] ?? "";
-            portThread = new Thread(() => HandlePort(stoppingToken)) { Priority = ThreadPriority.Normal, IsBackground = true, Name = "Conbee" };
+            portThread = new Thread(() => HandlePort(stoppingToken)) { Priority = ThreadPriority.AboveNormal, IsBackground = true, Name = "Conbee" };
             portThread.Start();
 
             //Check logLevel
@@ -197,7 +190,7 @@ namespace BrandThus.Zigbee.Conbee
         #region ReadCommand
         internal void ReadCommand()
         {
-            //Logger.Trace($"Read: {reader.Command}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
+            Logger.Trace($"Read: {reader.Command}; Sequence: {reader[1]}; status: {reader.Status}; length: {reader.Length}");
 
             ZigbeeNode? n = null;
             switch (reader.Command)
@@ -240,8 +233,6 @@ namespace BrandThus.Zigbee.Conbee
                                 break;
                         }
                     }
-                    else
-                        Console.WriteLine("Error");
                     HandleApsFrame(reader[7], true);
                     break;
                 case ConbeeCommand.MAC_POLL_INDICATION:
@@ -274,11 +265,12 @@ namespace BrandThus.Zigbee.Conbee
                                 return;
                             }
                         }
-                        drq.TaskSource?.SetResult(cfStatus == 0);
                         if (drq.ProfileId == 0)
                             Logger.Trace($"Zdo Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
                         else
                             Logger.Trace($"Zcl Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2}");
+
+                        drq.TaskSource?.SetResult(cfStatus == 0);
                     }
                     HandleApsFrame(reader[7], true);
                     break;
@@ -431,9 +423,11 @@ namespace BrandThus.Zigbee.Conbee
         #region SendAsync
         public override async Task SendAsync(ZigbeeRequest request)
         {
+            await Console.Out.WriteLineAsync("SendAsync");
             request.TaskSource = new TaskCompletionSource<bool>();
             commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, request));
-            await request.TaskSource.Task;
+            var res = await request.TaskSource.Task;
+            await Console.Out.WriteLineAsync($"Ready {res}");
         }
         #endregion
     }
