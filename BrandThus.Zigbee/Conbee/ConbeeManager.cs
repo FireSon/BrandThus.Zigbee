@@ -225,12 +225,16 @@ namespace BrandThus.Zigbee.Conbee
                         ushort profileId = reader.ReadUInt16();
                         ushort clusterId = reader.ReadUInt16();
                         reader.Payload = reader.Offset + reader.ReadUInt16();
-                        switch (profileId)
+                        var seq = profileId switch
                         {
-                            case 0: n.ZdoResponse(clusterId, endPoint, reader); break;
-                            case 260: n.ZclResponse(clusterId, endPoint, reader); break;
-                            default:
-                                break;
+                            0 => n.ZdoResponse(clusterId, endPoint, reader),
+                            260 => n.ZclResponse(clusterId, endPoint, reader), 
+                            _ => 0
+                        };
+                        if (requests[seq] is ZigbeeRequest rq)
+                        {
+                            rq.TaskSource?.SetResult(true);
+                            requests[seq] = null;
                         }
                     }
                     HandleApsFrame(reader[7], true);
@@ -252,7 +256,7 @@ namespace BrandThus.Zigbee.Conbee
                     int cfStatus = -1;
                     if (drq != null && drq != null)
                     {
-                        requests[reader[8]] = null;
+                        Logger.Info($"Request: {reader[8]}");
                         if (reader.Status == ConbeeStatus.SUCCESS)
                         {
                             n = ReadNode(9);
@@ -269,8 +273,6 @@ namespace BrandThus.Zigbee.Conbee
                             Logger.Trace($"Zdo Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2} aspe:{reader[7]:X4}");
                         else
                             Logger.Trace($"Zcl Node: 0x{n?.Addr16:x4} {drq.ProfileId:X4}:{drq.ClusterId:X4} Remove: {reader[8]} Status:{cfStatus:X2} aspe:{reader[7]:X4}");
-
-                        drq.TaskSource?.SetResult(cfStatus == 0);
                     }
                     HandleApsFrame(reader[7], true);
                     break;

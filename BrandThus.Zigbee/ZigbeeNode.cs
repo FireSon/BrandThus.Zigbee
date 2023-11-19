@@ -35,6 +35,8 @@ namespace BrandThus.Zigbee
         public object? Device { get; set; }
 
         internal ZigbeeManager Manager;
+        internal Dictionary<int, object> Values = new Dictionary<int, object>();
+
         private const byte MASK_MANUFACTURER_SPECIFIC = 4;
         private static Dictionary<int, Type> clusterTypes = new Dictionary<int, Type>();
         #endregion
@@ -69,16 +71,16 @@ namespace BrandThus.Zigbee
         public ZdoRequest IEEEDescriptor() => Zdo(1, w => w + Addr16 + (byte)0 + (byte)0);
         public ZdoRequest NodeDescriptor() => Zdo(2, w => w + Addr16);
         public ZdoRequest PowerDescriptor() => Zdo(3, w => w + Addr16);
-        public ZdoRequest SimpleDescriptor() => Zdo(4, w => w + Addr16 + (byte)1);
+        public ZdoRequest SimpleDescriptor(byte endpoint = 1) => Zdo(4, w => w + Addr16 + endpoint);
         public ZdoRequest EndPoints() => Zdo(5, w => w + Addr16);
         public ZdoRequest ComplexDescriptor() => Zdo(16, w => w + Addr16);
         #endregion
 
         #region ZdoResponse
-        internal void ZdoResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
+        internal byte ZdoResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
         {
             Logger.Info($"Addr:0x{Addr16:X4} - {endPoint}");
-            r.ReadByte();
+            var seq = r.ReadByte();
             var status = (ZdoStatus)r.ReadByte();
             if (status == ZdoStatus.SUCCESS)
                 switch (clusterId)
@@ -114,6 +116,7 @@ namespace BrandThus.Zigbee
                     default:
                         break;
                 }
+            return seq;
         }
         #endregion
 
@@ -136,7 +139,7 @@ namespace BrandThus.Zigbee
         #endregion
 
         #region ZclResponse
-        internal void ZclResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
+        internal byte ZclResponse(ushort clusterId, byte endPoint, ZigbeeReader r)
         {
             if ((r.ReadByte() & MASK_MANUFACTURER_SPECIFIC) != 0)
             {
@@ -144,6 +147,7 @@ namespace BrandThus.Zigbee
                 Logger.Info($"0x{Addr16:X4} ManufacturerCode: " + ManufacturerCode);
             }
             byte seq = r.ReadByte();
+            Logger.Info($"RequestId {seq}");
             var cmd = (ZclCommand)r.ReadByte();
             switch (cmd)
             {
@@ -159,11 +163,13 @@ namespace BrandThus.Zigbee
                     r.ReadByte();
                     break;
             }
+            return seq;
+
             void Read(bool noStatus = true)
             {
                 while (!r.IsReady)
                 {
-                    int key = ((int)clusterId << 16) + (int)r.ReadUInt16();
+                    int key = (clusterId << 16) + r.ReadUInt16();
                     if (!ZigbeeAttribute.Attributes.TryGetValue(key, out var zigbeeAttribute))
                     {
                         if (clusterTypes.Count == 0)
@@ -191,6 +197,7 @@ namespace BrandThus.Zigbee
                         {
                             int num2 = (int)r.ReadByte();
                             object obj = zigbeeAttribute.Read(r);
+                            Values[key] = obj;
                             Logger.Info($"Addr 0x{Addr16:X4} Ep:{endPoint}; Attr: {zigbeeAttribute.Cluster.Name} {zigbeeAttribute.AttrId:X4} {zigbeeAttribute.Name}: {obj}");
                             Manager.OnUpdate?.Invoke(this, zigbeeAttribute, endPoint, obj);
                         }
@@ -219,6 +226,8 @@ namespace BrandThus.Zigbee
         {
             var r = ZclRequest(attr.Cluster, 0, w => w + attr.AttrId, ZclFrameType.ENTIRE_PROFILE_COMMAND);
             await Manager.SendAsync(r);
+            if (Values.TryGetValue((attr.Cluster.Id << 16) + attr.AttrId, out var value)) 
+                return (T)value; 
             return default!;
         }
         #endregion
