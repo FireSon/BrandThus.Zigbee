@@ -23,7 +23,7 @@ Zigbee.OnUpdate = async (n, a, ep, v) => await Console.Out.WriteLineAsync($"{Dat
 
 ushort interval = 10;
 
-var plug = Zigbee.CreateNode((ushort)Convert.ToInt32("0x6a5c", 16));
+var plug = Zigbee.CreateNode((ushort)Convert.ToInt32("0x6a5a", 16));
 var temp = Zigbee.CreateNode((ushort)Convert.ToInt32("0x3988", 16));
 
 while (true)

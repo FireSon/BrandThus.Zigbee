@@ -425,11 +425,18 @@ namespace BrandThus.Zigbee.Conbee
         #region SendAsync
         public override async Task SendAsync(ZigbeeRequest request)
         {
-            await Console.Out.WriteLineAsync("SendAsync");
-            request.TaskSource = new TaskCompletionSource<bool>();
-            commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, request));
-            var res = await request.TaskSource.Task;
-            await Console.Out.WriteLineAsync($"Ready {res}");
+            try
+            {
+                request.TaskSource = new TaskCompletionSource<bool>();
+                var ct = new CancellationTokenSource(3000);
+                ct.Token.Register(() => request.TaskSource.TrySetCanceled(), useSynchronizationContext: false);
+
+                commands.Enqueue((ConbeeCommand.APS_DATA_REQUEST, request));
+                await request.TaskSource.Task;
+            }
+            catch 
+            {
+            }
         }
         #endregion
     }
