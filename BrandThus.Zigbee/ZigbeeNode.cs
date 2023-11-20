@@ -51,6 +51,7 @@ namespace BrandThus.Zigbee
             if (Power == null)
                 Requests.Add(NodeDescriptor());
 
+            OnPoll?.Invoke();
         }
         #endregion
 
