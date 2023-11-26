@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -300,10 +301,12 @@ namespace BrandThus.Zigbee.Conbee
             {
                 1 => CreateNode(reader.ReadUInt16()),
                 2 => CreateNode(reader.ReadUInt16()),
-                3 => throw new Exception("Unsupported address mode"),
+                3 => FindIEEE(reader.ReadUInt64()),
                 4 => throw new Exception("Unsupported address mode"),
                 _ => throw new Exception("Unsupported address mode"),
             };
+
+            ZigbeeNode FindIEEE(UInt64 addr64) => Nodes.Values.FirstOrDefault(n => n.Addr64 == addr64);
         }
         #endregion
 

@@ -163,6 +163,8 @@ namespace BrandThus.Zigbee
                 case ZclCommand.DefaultResponse:
                     r.ReadByte();
                     break;
+                default:
+                    break;
             }
             return seq;
 

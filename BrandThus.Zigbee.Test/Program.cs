@@ -49,6 +49,7 @@ while (true)
                 await plug.NodeDescriptor().SendAsync();
                 await plug.PowerDescriptor().SendAsync();
                 await plug.SimpleDescriptor().SendAsync();
+                await ZclOnOff.OnOff.ReportAsync(plug, 0, 0);
                 break;
             case ConsoleKey.D4:
                 //Read the plug ManufacturerName
