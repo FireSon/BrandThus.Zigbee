@@ -44,14 +44,14 @@ namespace BrandThus.Zigbee
         #region Poll
         internal void Poll()
         {
-            if (Addr64 == 0)
-                Requests.Add(IEEEDescriptor());
-            if (Descriptor == null)
-                Requests.Add(NodeDescriptor());
-            if (Power == null)
-                Requests.Add(NodeDescriptor());
+            //if (Addr64 == 0)
+            //    Requests.Add(IEEEDescriptor());
+            //if (Descriptor == null)
+            //    Requests.Add(NodeDescriptor());
+            //if (Power == null)
+            //    Requests.Add(NodeDescriptor());
 
-            OnPoll?.Invoke();
+            //OnPoll?.Invoke();
         }
         #endregion
 
